@@ -28,16 +28,32 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+private val SyncIcon = Icons.Default.CloudSync
+private val LoginIcon = Icons.Default.AccountCircle
+private val LogoutIcon = Icons.Default.Logout
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ImportScreen(
     savedFiles: List<SavedFile>,
     onJsonLoaded: (String) -> Unit,
     onOpenSaved: (String) -> Unit,
-    onDeleteSaved: (String) -> Unit
+    onDeleteSaved: (String) -> Unit,
+    isSignedIn: Boolean = false,
+    isSyncing: Boolean = false,
+    syncResultText: String? = null,
+    onSignInClick: () -> Unit = {},
+    onSyncClick: () -> Unit = {},
+    onSignOutClick: () -> Unit = {}
 ) {
     var showPasteSheet by remember { mutableStateOf(false) }
     var showPromptDialog by remember { mutableStateOf(false) }
+    var showSyncSnackbar by remember { mutableStateOf(false) }
+
+    // Show sync result as snackbar
+    LaunchedEffect(syncResultText) {
+        if (syncResultText != null) showSyncSnackbar = true
+    }
 
     if (showPasteSheet) {
         PasteBottomSheet(
@@ -62,6 +78,28 @@ fun ImportScreen(
                     }
                 },
                 actions = {
+                    if (isSignedIn) {
+                        IconButton(
+                            onClick = onSyncClick,
+                            enabled = !isSyncing
+                        ) {
+                            if (isSyncing) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(22.dp),
+                                    strokeWidth = 2.dp
+                                )
+                            } else {
+                                Icon(SyncIcon, "同步")
+                            }
+                        }
+                        IconButton(onClick = onSignOutClick) {
+                            Icon(LogoutIcon, "退出登录")
+                        }
+                    } else {
+                        IconButton(onClick = onSignInClick) {
+                            Icon(LoginIcon, "登录 Google")
+                        }
+                    }
                     IconButton(onClick = { showPromptDialog = true }) {
                         Icon(Icons.Default.AutoAwesome, "Prompt 模板")
                     }
@@ -78,15 +116,33 @@ fun ImportScreen(
             )
         }
     ) { padding ->
-        if (savedFiles.isEmpty()) {
-            EmptyState(Modifier.fillMaxSize().padding(padding)) { showPasteSheet = true }
-        } else {
-            SavedFilesList(
-                files = savedFiles,
-                onOpen = onOpenSaved,
-                onDelete = onDeleteSaved,
-                modifier = Modifier.fillMaxSize().padding(padding)
-            )
+        Box(Modifier.fillMaxSize().padding(padding)) {
+            if (savedFiles.isEmpty()) {
+                EmptyState(Modifier.fillMaxSize()) { showPasteSheet = true }
+            } else {
+                SavedFilesList(
+                    files = savedFiles,
+                    onOpen = onOpenSaved,
+                    onDelete = onDeleteSaved,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+
+            // Sync result snackbar
+            if (showSyncSnackbar && syncResultText != null) {
+                Snackbar(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(16.dp),
+                    action = {
+                        TextButton(onClick = { showSyncSnackbar = false }) {
+                            Text("确定")
+                        }
+                    }
+                ) {
+                    Text(syncResultText)
+                }
+            }
         }
     }
 }

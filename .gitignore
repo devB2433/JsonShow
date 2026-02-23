@@ -1,0 +1,19 @@
+*.iml
+.gradle
+/local.properties
+/.idea
+/build
+/app/build
+/captures
+.externalNativeBuild
+.cxx
+*.apk
+*.ap_
+*.aab
+
+# Google credentials - DO NOT commit
+client_secret_*.json
+web_client_secret_*.json
+
+# Claude
+.claude/

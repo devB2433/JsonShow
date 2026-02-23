@@ -7,12 +7,18 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.jsonshow.model.JsonNode
 import com.jsonshow.parser.JsonParser
+import com.jsonshow.sync.DriveSync
+import com.jsonshow.sync.SyncManager
+import com.jsonshow.sync.SyncResult
+import com.jsonshow.util.AppPrefs
 import com.jsonshow.util.FileUtils
 import com.jsonshow.util.JsonStorage
 import com.jsonshow.util.SavedFile
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 enum class ViewMode(val label: String) {
@@ -32,6 +38,53 @@ class JsonViewModel : ViewModel() {
 
     var savedFiles by mutableStateOf<List<SavedFile>>(emptyList())
     var currentFileName by mutableStateOf<String?>(null)
+
+    // --- Cloud sync state ---
+    var googleAccount by mutableStateOf<GoogleSignInAccount?>(null)
+    var isSyncing by mutableStateOf(false)
+    var syncResult by mutableStateOf<SyncResult?>(null)
+    var privacyAccepted by mutableStateOf(false)
+
+    fun loadPrivacyState(context: Context) {
+        viewModelScope.launch {
+            privacyAccepted = AppPrefs.privacyAccepted(context).first()
+        }
+    }
+
+    fun acceptPrivacy(context: Context) {
+        viewModelScope.launch {
+            AppPrefs.setPrivacyAccepted(context, true)
+            privacyAccepted = true
+        }
+    }
+
+    fun onSignedIn(account: GoogleSignInAccount) {
+        googleAccount = account
+    }
+
+    fun onSignedOut() {
+        googleAccount = null
+        syncResult = null
+    }
+
+    fun syncWithDrive(context: Context) {
+        val account = googleAccount ?: return
+        viewModelScope.launch(Dispatchers.IO) {
+            isSyncing = true
+            syncResult = null
+            try {
+                val driveSync = DriveSync(context, account)
+                val manager = SyncManager(driveSync)
+                syncResult = manager.sync(context)
+                // Refresh local list after sync
+                savedFiles = JsonStorage.list(context)
+            } catch (e: Exception) {
+                syncResult = SyncResult(errors = listOf("同步失败: ${e.message}"))
+            } finally {
+                isSyncing = false
+            }
+        }
+    }
 
     fun loadJson(text: String) {
         viewModelScope.launch(Dispatchers.Default) {
