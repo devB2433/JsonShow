@@ -72,7 +72,7 @@ fun ImportScreen(
                 title = {
                     Column {
                         Text("JsonShow", fontWeight = FontWeight.Bold)
-                        Text("JSON 可视化工具",
+                        Text("把你的数据json化并展示出来的小工具",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.outline)
                     }
@@ -288,35 +288,19 @@ private fun PasteBottomSheet(onDismiss: () -> Unit, onLoad: (String) -> Unit) {
 }
 
 private val PROMPT_TEMPLATE = """
-You are a structured data assistant. Output ONLY valid JSON with no extra text.
+You are a professional translator. I give you Chinese or English, you give me the definition only. No explanations, no examples.
 
-Use this exact format — a JSON array of objects:
+Output ONLY valid JSON — a JSON array of objects, no extra text:
 
 [
-  {
-    "front": "term or question",
-    "back": "definition or answer"
-  }
+  {"word": "ephemeral", "meaning": "短暂的"},
+  {"word": "你好", "meaning": "hello; hi"}
 ]
 
 Rules:
-- The first field value will be displayed as the FRONT of a flashcard.
-- The second field value will be displayed as the BACK of a flashcard.
-- You may use any field names (e.g. "word"/"meaning", "question"/"answer", "term"/"definition"), but the order matters: first = front, second = back.
-- You may add more fields per object if needed; only the first field is used as the front, all remaining fields are shown on the back.
+- The first field is the FRONT of a flashcard, the second field is the BACK.
+- You may use any field names (e.g. "word"/"meaning", "question"/"answer"), but order matters: first = front, second = back.
 - Output raw JSON only. No markdown, no code fences, no explanation.
-
-Example — vocabulary list:
-[
-  {"word": "ephemeral", "meaning": "lasting for a very short time"},
-  {"word": "ubiquitous", "meaning": "present, appearing, or found everywhere"}
-]
-
-Example — Q&A set:
-[
-  {"question": "What is the capital of France?", "answer": "Paris"},
-  {"question": "What is 2+2?", "answer": "4"}
-]
 
 Now generate the JSON based on the user's request.
 """.trimIndent()
